@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geometric Feature Matching & Stitching</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --accent2: #3fb950;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --tag-bg: #1f3a5f;
+      --tag-text: #79c0ff;
+      --pill-bg: #1a2f1a;
+      --pill-text: #56d364;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.7;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    nav .brand { font-weight: 700; font-size: 1rem; color: var(--text); letter-spacing: .3px; }
+    nav .links { display: flex; gap: 1.6rem; }
+    nav .links a {
+      color: var(--muted); text-decoration: none; font-size: .85rem;
+      transition: color .2s;
+    }
+    nav .links a:hover { color: var(--accent); }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 860px; margin: 0 auto;
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+    }
+    .hero .badge {
+      display: inline-block;
+      background: var(--tag-bg); color: var(--tag-text);
+      font-size: .72rem; font-weight: 600; letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: .28rem .85rem; border-radius: 99px;
+      border: 1px solid #1f4080;
+      margin-bottom: 1.4rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800; line-height: 1.2;
+      background: linear-gradient(135deg, #e6edf3 30%, #58a6ff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 1.2rem;
+    }
+    .hero p {
+      font-size: 1.1rem; color: var(--muted); max-width: 680px; margin: 0 auto 2rem;
+    }
+    .hero .pills { display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.5rem; }
+    .pill {
+      background: var(--pill-bg); color: var(--pill-text);
+      border: 1px solid #2ea04320; border-radius: 99px;
+      font-size: .78rem; font-weight: 600; padding: .25rem .9rem;
+    }
+    .hero .cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .6rem 1.4rem; border-radius: 8px;
+      font-size: .9rem; font-weight: 600; text-decoration: none;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .82; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* ── STATS BAR ── */
+    .stats {
+      background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 1.6rem 2rem;
+    }
+    .stats-inner {
+      max-width: 900px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1.5rem; text-align: center;
+    }
+    .stat-val { font-size: 1.9rem; font-weight: 800; color: var(--accent); }
+    .stat-lbl { font-size: .78rem; color: var(--muted); margin-top: .2rem; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── SECTION ── */
+    section { max-width: 940px; margin: 0 auto; padding: 4rem 2rem; }
+    section + section { border-top: 1px solid var(--border); }
+
+    h2 {
+      font-size: 1.6rem; font-weight: 700; margin-bottom: .5rem;
+      color: var(--text);
+    }
+    .section-sub { color: var(--muted); font-size: .95rem; margin-bottom: 2.5rem; }
+
+    /* ── PIPELINE ── */
+    .pipeline {
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .pipeline-item {
+      display: grid; grid-template-columns: 48px 1fr;
+      gap: 0 1.5rem; position: relative;
+    }
+    .pipe-left { display: flex; flex-direction: column; align-items: center; }
+    .pipe-num {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--tag-bg); border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; color: var(--accent);
+      flex-shrink: 0; z-index: 1;
+    }
+    .pipe-line {
+      width: 2px; flex: 1; background: var(--border);
+      margin: 4px 0;
+    }
+    .pipeline-item:last-child .pipe-line { display: none; }
+    .pipe-content { padding: 0 0 2.5rem; }
+    .pipe-content h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .4rem; color: var(--text); }
+    .pipe-content .tech-tag {
+      display: inline-block; background: var(--tag-bg); color: var(--tag-text);
+      font-size: .7rem; font-weight: 600; letter-spacing: .5px;
+      padding: .15rem .6rem; border-radius: 4px; margin-bottom: .7rem;
+    }
+    .pipe-content p { color: var(--muted); font-size: .92rem; line-height: 1.65; }
+    .pipe-content code {
+      background: #1f2733; color: #79c0ff;
+      padding: .1rem .4rem; border-radius: 4px; font-size: .85em;
+    }
+
+    /* ── SCENE TABS ── */
+    .tab-bar {
+      display: flex; gap: .5rem; margin-bottom: 1.8rem; flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: .45rem 1.2rem; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer;
+      font-size: .88rem; font-weight: 600; transition: all .2s;
+    }
+    .tab-btn.active {
+      background: var(--accent); color: #000; border-color: var(--accent);
+    }
+    .scene-panel { display: none; }
+    .scene-panel.active { display: block; }
+
+    /* ── RESULT GRID ── */
+    .result-meta {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.4rem 1.6rem; margin-bottom: 2rem;
+    }
+    .meta-item .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .meta-item .val { font-size: 1.25rem; font-weight: 700; color: var(--accent2); margin-top: .15rem; }
+
+    .result-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem;
+    }
+    .result-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      transition: border-color .2s, transform .2s;
+    }
+    .result-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .result-card img {
+      width: 100%; display: block;
+      background: #111;
+    }
+    .result-card .cap {
+      padding: .75rem 1rem;
+      font-size: .82rem; color: var(--muted); font-weight: 500;
+    }
+    .result-card.wide { grid-column: 1 / -1; }
+    .result-card.wide img { max-height: 420px; object-fit: contain; }
+
+    /* ── METRICS TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: .88rem;
+    }
+    thead th {
+      background: var(--surface); color: var(--muted);
+      padding: .75rem 1rem; text-align: left;
+      border-bottom: 2px solid var(--border);
+      font-size: .75rem; text-transform: uppercase; letter-spacing: .5px;
+    }
+    tbody td {
+      padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tbody tr:hover td { background: #1c2230; }
+    .rate-good { color: var(--accent2); font-weight: 700; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem; text-align: center;
+      color: var(--muted); font-size: .84rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="brand">Geometric Feature Matching &amp; Stitching</span>
+  <div class="links">
+    <a href="#pipeline">Pipeline</a>
+    <a href="#results">Results</a>
+    <a href="#metrics">Metrics</a>
+    <a href="https://github.com/ramyamanasa/Geometric-Feature-Matching-and-Stitching" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">Geometric Computer Vision</div>
+  <h1>Geometric Feature Matching<br>&amp; Panoramic Stitching</h1>
+  <p>
+    A from-scratch implementation of a classical geometric vision pipeline —
+    Harris corners, MOPS descriptors, NNDR matching, RANSAC homography estimation,
+    and inverse-warp panorama compositing. No OpenCV. No shortcuts.
+  </p>
+  <div class="pills">
+    <span class="pill">Python</span>
+    <span class="pill">NumPy</span>
+    <span class="pill">scikit-image</span>
+    <span class="pill">SciPy</span>
+    <span class="pill">Matplotlib</span>
+  </div>
+  <div class="cta">
+    <a href="https://github.com/ramyamanasa/Geometric-Feature-Matching-and-Stitching" class="btn btn-primary" target="_blank">
+      ↗ View on GitHub
+    </a>
+    <a href="#results" class="btn btn-ghost">See Results ↓</a>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-inner">
+    <div><div class="stat-val">~26K</div><div class="stat-lbl">Harris corners / image</div></div>
+    <div><div class="stat-val">192</div><div class="stat-lbl">Descriptor dimensions</div></div>
+    <div><div class="stat-val">2000</div><div class="stat-lbl">RANSAC iterations</div></div>
+    <div><div class="stat-val">88 %</div><div class="stat-lbl">Avg. inlier rate</div></div>
+    <div><div class="stat-val">3</div><div class="stat-lbl">Scene panoramas</div></div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<section id="pipeline">
+  <h2>Pipeline</h2>
+  <p class="section-sub">Six tightly coupled stages take a raw image pair to a seamless panorama.</p>
+
+  <div class="pipeline">
+
+    <div class="pipeline-item">
+      <div class="pipe-left"><div class="pipe-num">1</div><div class="pipe-line"></div></div>
+      <div class="pipe-content">
+        <div class="tech-tag">Structure Tensor</div>
+        <h3>Harris Corner Detection</h3>
+        <p>The Harris detector analyses the second-moment (structure) tensor of image gradients.
+        A corner is a location where both tensor eigenvalues are large — meaning gradient energy
+        varies strongly in all directions. Rather than computing eigenvalues explicitly,
+        the response <code>det(M) − k·tr(M)²</code> is used as an efficient approximation.
+        Corners within a 20-pixel border strip are discarded to avoid unreliable boundary effects.</p>
+      </div>
+    </div>
+
+    <div class="pipeline-item">
+      <div class="pipe-left"><div class="pipe-num">2</div><div class="pipe-line"></div></div>
+      <div class="pipe-content">
+        <div class="tech-tag">Local Max Filtering</div>
+        <h3>Non-Maximal Suppression (NMS)</h3>
+        <p>Harris responses cluster densely around strong edges and corners.
+        A sliding 11×11-pixel window scans each detection: only the single pixel with the
+        highest response in its neighbourhood survives. This reduces ~26,000 raw detections
+        to ~4,900 well-distributed keypoints per image without discarding strong corners.</p>
+      </div>
+    </div>
+
+    <div class="pipeline-item">
+      <div class="pipe-left"><div class="pipe-num">3</div><div class="pipe-line"></div></div>
+      <div class="pipe-content">
+        <div class="tech-tag">MOPS-Style · 192-dim</div>
+        <h3>RGB Patch Descriptor Extraction</h3>
+        <p>A 40×40 RGB patch is sampled around each surviving keypoint and downsampled to
+        8×8×3 using anti-aliased bicubic interpolation, producing a 192-dimensional vector.
+        The descriptor is bias/gain normalised (<code>(d − μ) / σ</code>) to achieve invariance
+        to affine illumination changes. Using RGB rather than grayscale preserves colour
+        discriminability — a red and blue object with identical texture are clearly distinguishable.</p>
+      </div>
+    </div>
+
+    <div class="pipeline-item">
+      <div class="pipe-left"><div class="pipe-num">4</div><div class="pipe-line"></div></div>
+      <div class="pipe-content">
+        <div class="tech-tag">Lowe's Ratio Test</div>
+        <h3>NNDR Feature Matching</h3>
+        <p>For each descriptor in image 1, the two nearest neighbours in image 2 are found
+        using squared-Euclidean (SSD) distance. A match is accepted only when
+        <code>d(1NN) / d(2NN) &lt; 0.7</code> — meaning the closest match is significantly
+        more distinctive than the runner-up. This ratio test eliminates the majority of
+        ambiguous correspondences in repetitive or textureless regions.</p>
+      </div>
+    </div>
+
+    <div class="pipeline-item">
+      <div class="pipe-left"><div class="pipe-num">5</div><div class="pipe-line"></div></div>
+      <div class="pipe-content">
+        <div class="tech-tag">DLT + SVD · RANSAC</div>
+        <h3>Robust Homography Estimation</h3>
+        <p>RANSAC iteratively draws random 4-match subsets and fits a planar homography
+        via the Direct Linear Transform (DLT): each correspondence contributes two rows to
+        a linear system <code>Ah = 0</code>, solved by extracting the last right-singular
+        vector via SVD. The hypothesis maximising geometrically consistent inliers
+        (reprojection error &lt; 5 px) is retained. With 2000 iterations, the algorithm
+        reliably identifies the correct transformation even when 10–30 % of input matches
+        are outliers.</p>
+      </div>
+    </div>
+
+    <div class="pipeline-item">
+      <div class="pipe-left"><div class="pipe-num">6</div><div class="pipe-line"></div></div>
+      <div class="pipe-content">
+        <div class="tech-tag">Bilinear Interpolation · Average Blend</div>
+        <h3>Inverse Warping &amp; Compositing</h3>
+        <p>Every output pixel is back-projected through <code>H⁻¹</code> to its source location
+        in image 1. Sub-pixel colours are resolved by bilinear interpolation over the four
+        nearest source pixels, avoiding the holes that forward-warping produces.
+        The canvas is sized to contain both transformed images; overlapping regions are
+        composited by averaging pixel values.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <h2>Results</h2>
+  <p class="section-sub">Click a scene to explore its pipeline outputs step by step.</p>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchScene('mural', this)">Mural</button>
+    <button class="tab-btn" onclick="switchScene('teddy', this)">Teddy</button>
+    <button class="tab-btn" onclick="switchScene('north', this)">North Building</button>
+  </div>
+
+  <!-- MURAL -->
+  <div class="scene-panel active" id="scene-mural">
+    <div class="result-meta">
+      <div class="meta-item"><div class="lbl">Harris corners</div><div class="val">26,371 / 26,230</div></div>
+      <div class="meta-item"><div class="lbl">After NMS</div><div class="val">4,898 / 4,887</div></div>
+      <div class="meta-item"><div class="lbl">NNDR matches</div><div class="val">1,900</div></div>
+      <div class="meta-item"><div class="lbl">RANSAC inliers</div><div class="val">1,657</div></div>
+      <div class="meta-item"><div class="lbl">Inlier rate</div><div class="val" style="color:#58a6ff">87.2 %</div></div>
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><img src="results/mural/step1_harris.jpg" alt="Harris Corners" loading="lazy" /><div class="cap">Stage 1 — Harris corner detection</div></div>
+      <div class="result-card"><img src="results/mural/step2_nms.jpg" alt="NMS" loading="lazy" /><div class="cap">Stage 2 — Non-maximal suppression</div></div>
+      <div class="result-card"><img src="results/mural/step4_nndr.jpg" alt="NNDR" loading="lazy" /><div class="cap">Stage 4 — NNDR ratio distribution</div></div>
+      <div class="result-card"><img src="results/mural/step4_top5.jpg" alt="Top matches" loading="lazy" /><div class="cap">Stage 4 — Top-5 descriptor match pairs</div></div>
+      <div class="result-card wide"><img src="results/mural/step4_matches.jpg" alt="Match lines" loading="lazy" /><div class="cap">Stage 4 — Top 50 feature correspondences</div></div>
+      <div class="result-card wide"><img src="results/mural/panorama.jpg" alt="Panorama" loading="lazy" /><div class="cap">Stage 6 — Stitched panorama (87.2 % inlier rate)</div></div>
+    </div>
+  </div>
+
+  <!-- TEDDY -->
+  <div class="scene-panel" id="scene-teddy">
+    <div class="result-meta">
+      <div class="meta-item"><div class="lbl">Harris corners</div><div class="val">26,686 / 26,931</div></div>
+      <div class="meta-item"><div class="lbl">After NMS</div><div class="val">4,856 / 4,792</div></div>
+      <div class="meta-item"><div class="lbl">NNDR matches</div><div class="val">2,118</div></div>
+      <div class="meta-item"><div class="lbl">RANSAC inliers</div><div class="val">1,866</div></div>
+      <div class="meta-item"><div class="lbl">Inlier rate</div><div class="val" style="color:#58a6ff">88.1 %</div></div>
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><img src="results/teddy/step1_harris.jpg" alt="Harris Corners" loading="lazy" /><div class="cap">Stage 1 — Harris corner detection</div></div>
+      <div class="result-card"><img src="results/teddy/step2_nms.jpg" alt="NMS" loading="lazy" /><div class="cap">Stage 2 — Non-maximal suppression</div></div>
+      <div class="result-card"><img src="results/teddy/step4_nndr.jpg" alt="NNDR" loading="lazy" /><div class="cap">Stage 4 — NNDR ratio distribution</div></div>
+      <div class="result-card"><img src="results/teddy/step4_top5.jpg" alt="Top matches" loading="lazy" /><div class="cap">Stage 4 — Top-5 descriptor match pairs</div></div>
+      <div class="result-card wide"><img src="results/teddy/step4_matches.jpg" alt="Match lines" loading="lazy" /><div class="cap">Stage 4 — Top 50 feature correspondences</div></div>
+      <div class="result-card wide"><img src="results/teddy/panorama.jpg" alt="Panorama" loading="lazy" /><div class="cap">Stage 6 — Stitched panorama (88.1 % inlier rate)</div></div>
+    </div>
+  </div>
+
+  <!-- NORTH -->
+  <div class="scene-panel" id="scene-north">
+    <div class="result-meta">
+      <div class="meta-item"><div class="lbl">Harris corners</div><div class="val">5,630 / 5,310</div></div>
+      <div class="meta-item"><div class="lbl">After NMS</div><div class="val">1,364 / 1,194</div></div>
+      <div class="meta-item"><div class="lbl">NNDR matches</div><div class="val">846</div></div>
+      <div class="meta-item"><div class="lbl">RANSAC inliers</div><div class="val">611</div></div>
+      <div class="meta-item"><div class="lbl">Inlier rate</div><div class="val" style="color:#58a6ff">72.2 %</div></div>
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><img src="results/north/step1_harris.jpg" alt="Harris Corners" loading="lazy" /><div class="cap">Stage 1 — Harris corner detection</div></div>
+      <div class="result-card"><img src="results/north/step2_nms.jpg" alt="NMS" loading="lazy" /><div class="cap">Stage 2 — Non-maximal suppression</div></div>
+      <div class="result-card"><img src="results/north/step4_nndr.jpg" alt="NNDR" loading="lazy" /><div class="cap">Stage 4 — NNDR ratio distribution</div></div>
+      <div class="result-card"><img src="results/north/step4_top5.jpg" alt="Top matches" loading="lazy" /><div class="cap">Stage 4 — Top-5 descriptor match pairs</div></div>
+      <div class="result-card wide"><img src="results/north/step4_matches.jpg" alt="Match lines" loading="lazy" /><div class="cap">Stage 4 — Top 50 feature correspondences</div></div>
+      <div class="result-card wide"><img src="results/north/panorama.jpg" alt="Panorama" loading="lazy" /><div class="cap">Stage 6 — Stitched panorama (72.2 % inlier rate)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section id="metrics">
+  <h2>Quantitative Metrics</h2>
+  <p class="section-sub">Full pipeline statistics across all three scenes with default parameters.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Scene</th>
+          <th>Harris Img1</th>
+          <th>Harris Img2</th>
+          <th>NMS Img1</th>
+          <th>NMS Img2</th>
+          <th>NNDR Matches</th>
+          <th>RANSAC Inliers</th>
+          <th>Inlier Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Mural</strong></td>
+          <td>26,371</td><td>26,230</td>
+          <td>4,898</td><td>4,887</td>
+          <td>1,900</td><td>1,657</td>
+          <td><span class="rate-good">87.2 %</span></td>
+        </tr>
+        <tr>
+          <td><strong>Teddy</strong></td>
+          <td>26,686</td><td>26,931</td>
+          <td>4,856</td><td>4,792</td>
+          <td>2,118</td><td>1,866</td>
+          <td><span class="rate-good">88.1 %</span></td>
+        </tr>
+        <tr>
+          <td><strong>North</strong></td>
+          <td>5,630</td><td>5,310</td>
+          <td>1,364</td><td>1,194</td>
+          <td>846</td><td>611</td>
+          <td><span class="rate-good">72.2 %</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    Built with Python · NumPy · scikit-image · SciPy · Matplotlib &nbsp;|&nbsp;
+    <a href="https://github.com/ramyamanasa/Geometric-Feature-Matching-and-Stitching" target="_blank">View source on GitHub ↗</a>
+  </p>
+</footer>
+
+<script>
+  function switchScene(name, btn) {
+    document.querySelectorAll('.scene-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
