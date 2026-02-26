@@ -1,0 +1,59 @@
+# ============================================================
+# Classical Feature Matching & Stitching – Default Configuration
+# ============================================================
+
+# Input / output paths
+images_dir: "examples"
+results_dir: "results"
+
+# Scene definitions: each scene is a pair of overlapping images
+scenes:
+  - name: mural
+    img1: "examples/mural_1.jpg"
+    img2: "examples/mural_2.jpg"
+  - name: teddy
+    img1: "examples/teddy_1.jpg"
+    img2: "examples/teddy_2.jpg"
+  - name: north
+    img1: "examples/north_1.jpg"
+    img2: "examples/north_2.jpg"
+
+# ─────────────────────────────────────────────────────────────
+# Stage 1: Harris Corner Detection
+# ─────────────────────────────────────────────────────────────
+harris:
+  edge_discard: 20          # Border strip (pixels) from which corners are ignored
+
+# ─────────────────────────────────────────────────────────────
+# Stage 2: Non-Maximal Suppression
+# ─────────────────────────────────────────────────────────────
+nms:
+  window_size: 11           # Side length (pixels) of the local-max suppression window
+
+# ─────────────────────────────────────────────────────────────
+# Stage 3: Descriptor Extraction (MOPS-style RGB patch)
+# ─────────────────────────────────────────────────────────────
+descriptor:
+  patch_size: 40            # Raw patch side length (pixels) sampled around each corner
+  desc_size: 8              # Downsampled descriptor grid size (desc_size × desc_size × 3)
+
+# ─────────────────────────────────────────────────────────────
+# Stage 4: Feature Matching (NNDR / Lowe's ratio test)
+# ─────────────────────────────────────────────────────────────
+matching:
+  nndr_threshold: 0.7       # Ratio threshold; lower → fewer but more reliable matches
+
+# ─────────────────────────────────────────────────────────────
+# Stage 5: Homography Estimation (RANSAC)
+# ─────────────────────────────────────────────────────────────
+ransac:
+  num_iterations: 2000      # Maximum sampling iterations
+  inlier_threshold: 5.0     # Reprojection error threshold for inlier classification (pixels)
+  min_inliers: 10           # Minimum inlier count required to attempt panorama stitching
+
+# ─────────────────────────────────────────────────────────────
+# Visualisation
+# ─────────────────────────────────────────────────────────────
+visualization:
+  top_matches: 5            # Number of top-scoring matches shown in the patch grid
+  draw_matches: 50          # Number of top matches drawn as lines in the overview plot
