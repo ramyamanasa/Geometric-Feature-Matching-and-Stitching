@@ -1,6 +1,10 @@
-# Classical Feature Matching and Stitching
+# Geometric Feature Matching and Stitching
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-58a6ff?style=flat-square&logo=github)](https://your-username.github.io/geometric-feature-matching-and-stitching/)
 
 A production-quality implementation of a classical geometric computer-vision pipeline for automatic feature detection, description, matching, and panoramic image stitching — built entirely from first principles using NumPy, scikit-image, and SciPy.
+
+> **Interactive results:** Visit the [live demo page](https://your-username.github.io/geometric-feature-matching-and-stitching/) to explore the full pipeline output — step-by-step visualisations and stitched panoramas for all three scenes.
 
 ---
 
